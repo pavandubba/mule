@@ -15,14 +15,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mule.module.http.api.HttpConstants.Protocols.HTTPS;
 
+import org.mule.DefaultMuleMessage;
+import org.mule.api.MuleMessage;
+import org.mule.module.http.api.HttpConstants;
 import org.mule.module.http.api.HttpHeaders;
+import org.mule.module.http.api.client.HttpRequestOptionsBuilder;
 import org.mule.module.http.internal.HttpParser;
 import org.mule.module.oauth2.AbstractOAuthAuthorizationTestCase;
 import org.mule.module.oauth2.asserter.AuthorizationRequestAsserter;
 import org.mule.module.oauth2.asserter.OAuthContextFunctionAsserter;
 import org.mule.module.oauth2.internal.OAuthConstants;
 import org.mule.tck.junit4.rule.SystemProperty;
+import org.mule.transport.NullPayload;
+import org.mule.transport.ssl.DefaultTlsContextFactory;
+import org.mule.transport.ssl.api.TlsContextFactory;
 
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.google.common.collect.ImmutableMap;
@@ -40,11 +48,11 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
     public final String CUSTOM_RESPONSE_PARAMETER2_VALUE = "token-resp-value2";
 
     @Rule
-    public SystemProperty localAuthorizationUrl = new SystemProperty("local.authorization.url", String.format("http://localhost:%d/authorization", localHostPort.getNumber()));
+    public SystemProperty localAuthorizationUrl = new SystemProperty("local.authorization.url", String.format("%s://localhost:%d/authorization", getProtocol(), localHostPort.getNumber()));
     @Rule
-    public SystemProperty authorizationUrl = new SystemProperty("authorization.url", String.format("http://localhost:%d" + AUTHORIZE_PATH, oauthServerPort.getNumber()));
+    public SystemProperty authorizationUrl = new SystemProperty("authorization.url", String.format("%s://localhost:%d" + AUTHORIZE_PATH, getProtocol(), oauthServerPort.getNumber()));
     @Rule
-    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("http://localhost:%d" + TOKEN_PATH, oauthServerPort.getNumber()));
+    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("%s://localhost:%d" + TOKEN_PATH, getProtocol(), oauthServerPort.getNumber()));
     @Rule
     public SystemProperty authenticationRequestParam1 = new SystemProperty("auth.request.param1", "auth-req-param1");
     @Rule
@@ -110,11 +118,7 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
                 .put(OAuthConstants.CODE_PARAMETER, AUTHENTICATION_CODE)
                 .put(OAuthConstants.STATE_PARAMETER, state.getValue()).build();
 
-
-        Request.Get(redirectUrl.getValue() + "?" + HttpParser.encodeQueryString(redirectUrlQueryParams))
-                .connectTimeout(REQUEST_TIMEOUT)
-                .socketTimeout(REQUEST_TIMEOUT)
-                .execute();
+        MuleMessage response = muleContext.getClient().send(redirectUrl.getValue() + "?" + HttpParser.encodeQueryString(redirectUrlQueryParams), new DefaultMuleMessage(NullPayload.getInstance(), muleContext), HttpRequestOptionsBuilder.newOptions().tlsContextFactory(new DefaultTlsContextFactory()).build());
 
         verifyRequestDoneToTokenUrlForAuthorizationCode();
 
@@ -127,4 +131,9 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
                 .assertContainsCustomTokenResponseParam(customTokenResponseParameter2Name.getValue(), CUSTOM_RESPONSE_PARAMETER2_VALUE);
     }
 
+    @Override
+    protected String getProtocol()
+    {
+        return HTTPS;
+    }
 }

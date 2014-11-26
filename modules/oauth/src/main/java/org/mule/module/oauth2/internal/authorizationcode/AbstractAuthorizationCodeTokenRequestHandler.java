@@ -90,6 +90,7 @@ public abstract class AbstractAuthorizationCodeTokenRequestHandler extends Abstr
      */
     public void setOauthConfig(AuthorizationCodeGrantType oauthConfig)
     {
+        this.setTlsContextFactory(oauthConfig.getTlsContextFactory());
         this.oauthConfig = oauthConfig;
     }
 

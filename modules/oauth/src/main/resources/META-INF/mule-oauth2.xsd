@@ -113,22 +113,10 @@
                         </xsd:documentation>
                     </xsd:annotation>
                 </xsd:attribute>
-                <xsd:attribute name="requestConfig" type="xsd:string" use="optional">
+                <xsd:attribute name="tlsContext-ref" type="xsd:string" use="optional">
                     <xsd:annotation>
                         <xsd:documentation>
-                            References an HTTP request-config element. This allows to define trusted certificates when
-                            using SSL in the OAuth dance.
-                        </xsd:documentation>
-                    </xsd:annotation>
-                </xsd:attribute>
-                <xsd:attribute name="listenerConfig" type="xsd:string" use="optional">
-                    <xsd:annotation>
-                        <xsd:documentation>
-                            References and HTTP listener-config element. This allows to define the keystore and
-                            truststore to
-                            use when using HTTPS in the OAuth dance for the localAuthenticationUrl of the
-                            authoriation-request element
-                            or when listening on the redirectUrl to process the OAuth callback.
+                            References a TLS config that will be used to receive incoming HTTP request and do HTTP request during the OAuth dance.
                         </xsd:documentation>
                     </xsd:annotation>
                 </xsd:attribute>
@@ -169,6 +157,13 @@
                     <xsd:annotation>
                         <xsd:documentation>
                             The token manager configuration to use for this grant type.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="tlsContext-ref" type="xsd:string" use="optional">
+                    <xsd:annotation>
+                        <xsd:documentation>
+                            References a TLS config that will be used to receive incoming HTTP request and do HTTP request during the OAuth dance.
                         </xsd:documentation>
                     </xsd:annotation>
                 </xsd:attribute>

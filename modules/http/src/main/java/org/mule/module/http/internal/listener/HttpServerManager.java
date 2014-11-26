@@ -6,7 +6,7 @@
  */
 package org.mule.module.http.internal.listener;
 
-import org.mule.transport.ssl.TlsContextFactory;
+import org.mule.transport.ssl.api.TlsContextFactory;
 
 import java.io.IOException;
 
