@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mule.module.http.api.HttpConstants.Protocols.HTTPS;
 import static org.mule.module.oauth2.internal.AbstractGrantType.buildAuthorizationHeaderContent;
 
 import org.mule.construct.Flow;
@@ -40,7 +41,7 @@ public class ClientCredentialsFullConfigTestCase extends AbstractOAuthAuthorizat
     private static final String RESOURCE_PATH = "/resource";
     private static final String NEW_ACCESS_TOKEN = "abcdefghjkl";
     @Rule
-    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("http://localhost:%d" + TOKEN_PATH, oauthServerPort.getNumber()));
+    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("%s://localhost:%d" + TOKEN_PATH, getProtocol(), oauthHttpsServerPort.getNumber()));
     @Rule
     public SystemProperty customTokenResponseParameter1Name = new SystemProperty("custom.param.extractor1", "token-resp-param1");
     @Rule
@@ -106,5 +107,11 @@ public class ClientCredentialsFullConfigTestCase extends AbstractOAuthAuthorizat
 
         wireMockRule.verify(postRequestedFor(urlEqualTo(RESOURCE_PATH))
                                     .withHeader(HttpHeaders.Names.AUTHORIZATION, equalTo(buildAuthorizationHeaderContent(NEW_ACCESS_TOKEN))));
+    }
+
+    @Override
+    protected String getProtocol()
+    {
+        return HTTPS;
     }
 }

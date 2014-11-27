@@ -16,11 +16,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mule.module.http.api.HttpConstants.Protocols.HTTPS;
-
 import org.mule.DefaultMuleMessage;
 import org.mule.api.MuleMessage;
 import org.mule.module.http.api.HttpConstants;
 import org.mule.module.http.api.HttpHeaders;
+import org.mule.module.http.api.client.HttpRequestOptions;
 import org.mule.module.http.api.client.HttpRequestOptionsBuilder;
 import org.mule.module.http.internal.HttpParser;
 import org.mule.module.oauth2.AbstractOAuthAuthorizationTestCase;
@@ -37,7 +37,6 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 
-import org.apache.http.client.fluent.Request;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -50,9 +49,9 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
     @Rule
     public SystemProperty localAuthorizationUrl = new SystemProperty("local.authorization.url", String.format("%s://localhost:%d/authorization", getProtocol(), localHostPort.getNumber()));
     @Rule
-    public SystemProperty authorizationUrl = new SystemProperty("authorization.url", String.format("%s://localhost:%d" + AUTHORIZE_PATH, getProtocol(), oauthServerPort.getNumber()));
+    public SystemProperty authorizationUrl = new SystemProperty("authorization.url", String.format("%s://localhost:%d" + AUTHORIZE_PATH, getProtocol(), oauthHttpsServerPort.getNumber()));
     @Rule
-    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("%s://localhost:%d" + TOKEN_PATH, getProtocol(), oauthServerPort.getNumber()));
+    public SystemProperty tokenUrl = new SystemProperty("token.url", String.format("%s://localhost:%d" + TOKEN_PATH, getProtocol(), oauthHttpsServerPort.getNumber()));
     @Rule
     public SystemProperty authenticationRequestParam1 = new SystemProperty("auth.request.param1", "auth-req-param1");
     @Rule
@@ -78,10 +77,17 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
     {
         wireMockRule.stubFor(get(urlMatching(AUTHORIZE_PATH + ".*")).willReturn(aResponse().withStatus(200)));
 
-        Request.Get(localAuthorizationUrl.getValue())
-                .connectTimeout(REQUEST_TIMEOUT)
-                .socketTimeout(REQUEST_TIMEOUT)
-                .execute();
+        HttpRequestOptions options =  HttpRequestOptionsBuilder.newOptions()
+                .disableFollowsRedirect()
+                .tlsContextFactory((TlsContextFactory) muleContext.getRegistry().get("tlsContext"))
+                .build();
+
+        MuleMessage response = muleContext.getClient().send(localAuthorizationUrl.getValue(), new DefaultMuleMessage(NullPayload.getInstance(), muleContext), options);
+
+        assertThat((Integer) response.getInboundProperty(HttpConstants.ResponseProperties.HTTP_STATUS_PROPERTY), is(302));
+
+        String redirectedLocation = response.getInboundProperty(HttpHeaders.Names.LOCATION);
+        muleContext.getClient().send(redirectedLocation, new DefaultMuleMessage(NullPayload.getInstance(), muleContext), options);
 
         final List<LoggedRequest> requests = findAll(getRequestedFor(urlMatching(AUTHORIZE_PATH + ".*")));
         assertThat(requests.size(), is(1));
@@ -118,7 +124,7 @@ public class AuthorizationCodeFullConfigTestCase extends AbstractOAuthAuthorizat
                 .put(OAuthConstants.CODE_PARAMETER, AUTHENTICATION_CODE)
                 .put(OAuthConstants.STATE_PARAMETER, state.getValue()).build();
 
-        MuleMessage response = muleContext.getClient().send(redirectUrl.getValue() + "?" + HttpParser.encodeQueryString(redirectUrlQueryParams), new DefaultMuleMessage(NullPayload.getInstance(), muleContext), HttpRequestOptionsBuilder.newOptions().tlsContextFactory(new DefaultTlsContextFactory()).build());
+        muleContext.getClient().send(redirectUrl.getValue() + "?" + HttpParser.encodeQueryString(redirectUrlQueryParams), new DefaultMuleMessage(NullPayload.getInstance(), muleContext), HttpRequestOptionsBuilder.newOptions().tlsContextFactory(new DefaultTlsContextFactory()).build());
 
         verifyRequestDoneToTokenUrlForAuthorizationCode();
 

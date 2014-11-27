@@ -12,19 +12,19 @@
 
     <oauth2:token-manager-config name="tokenManagerConfig"/>
 
-    <tls:context name="tlsConfig">
+    <tls:context name="tlsContext">
         <tls:trust-store path="ssltest-cacerts.jks" password="changeit"/>
         <tls:key-store path="ssltest-keystore.jks" keyPassword="changeit" password="changeit"/>
     </tls:context>
 
     <http:request-config name="requestConfig"
-                         tlsContext-ref="tlsConfig">
+                         tlsContext-ref="tlsContext">
         <oauth2:authorization-code-grant-type
                 clientId="${client.id}"
                 clientSecret="${client.secret}"
                 redirectionUrl="${redirect.url}"
                 tokenManager-ref="tokenManagerConfig"
-                tlsContext-ref="tlsConfig">
+                tlsContext-ref="tlsContext">
             <oauth2:authorization-request
                     localAuthorizationUrl="${local.authorization.url}"
                     authorizationUrl="${authorization.url}"
