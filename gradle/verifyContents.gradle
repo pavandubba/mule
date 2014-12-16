@@ -5,7 +5,7 @@
  * LICENSE.txt file.
  */
 
-task verify(type: ContentsVerifierTask) {
+task distVerify(type: ContentsVerifierTask) {
     whitelist = file("distributions/standalone/assembly-whitelist2.txt")
     projectOutputFolder = file("$buildDir/install/standalone")
     dependsOn("installDist")

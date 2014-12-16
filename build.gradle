@@ -42,6 +42,13 @@ apply from: 'gradle/ci.gradle'
 // Distributions: built directly from the top level project
 apply from: 'gradle/verifyContents.gradle'
 
+task distribution {
+    dependsOn distVerify
+    dependsOn distZip
+    dependsOn distTar
+}
+
+
 task wrapper(type: Wrapper) {
     gradleVersion = '2.2.1'
 }
