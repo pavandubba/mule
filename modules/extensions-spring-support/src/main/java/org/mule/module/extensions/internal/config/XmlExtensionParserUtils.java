@@ -7,9 +7,12 @@
 package org.mule.module.extensions.internal.config;
 
 import static org.mule.module.extensions.internal.util.MuleExtensionUtils.isExpression;
+import static org.mule.module.extensions.internal.util.NameUtils.hyphenize;
+import static org.mule.module.extensions.internal.util.NameUtils.singularize;
 import org.mule.api.lifecycle.Disposable;
 import org.mule.api.lifecycle.Initialisable;
 import org.mule.config.spring.MuleHierarchicalBeanDefinitionParserDelegate;
+import org.mule.config.spring.parsers.generic.AutoIdUtils;
 import org.mule.extensions.introspection.DataQualifierVisitor;
 import org.mule.extensions.introspection.DataType;
 import org.mule.extensions.introspection.Parameter;
@@ -64,6 +67,13 @@ final class XmlExtensionParserUtils
 
     private static final TemplateParser parser = TemplateParser.createMuleStyleParser();
     private static final ConversionService conversionService = new DefaultConversionService();
+
+    static void parseConfigName(Element element, BeanDefinitionBuilder builder)
+    {
+        String name = AutoIdUtils.getUniqueName(element, "mule-bean");
+        element.setAttribute("name", name);
+        builder.addConstructorArgValue(name);
+    }
 
     private static ValueResolver parseCollectionAsInnerElement(ElementDescriptor collectionElement,
                                                                String childElementName,
@@ -189,6 +199,8 @@ final class XmlExtensionParserUtils
                                            DataType pojoType,
                                            Object defaultValue)
     {
+
+        // check if the pojo is referenced as an attribute
         ValueResolver resolver = getResolverFromAttribute(element, fieldName, pojoType, defaultValue);
 
         if (resolver != null)
@@ -196,14 +208,20 @@ final class XmlExtensionParserUtils
             return resolver;
         }
 
+        // check if the pojo is defined inline as a child element
         element = element.getChildByName(parentElementName);
 
-        if (element == null)
+        if (element != null)
         {
-            return new StaticValueResolver(null);
+            return new ObjectBuilderValueResolver(recursePojoProperties(pojoType.getRawType(), element));
         }
 
-        return new ObjectBuilderValueResolver(recursePojoProperties(pojoType.getRawType(), element));
+        //last chance, check if this is a top level element
+
+        if (element != null) {
+        }
+
+        return new StaticValueResolver(null);
     }
 
     private static ObjectBuilder recursePojoProperties(Class<?> declaringClass, ElementDescriptor element)
@@ -226,7 +244,7 @@ final class XmlExtensionParserUtils
 
             if (resolver == null)
             {
-                parameterName = NameUtils.hyphenize(parameterName);
+                parameterName = hyphenize(parameterName);
                 ElementDescriptor childElement = element.getChildByName(parameterName);
                 if (childElement != null)
                 {
@@ -322,8 +340,8 @@ final class XmlExtensionParserUtils
                                       final DataType dataType,
                                       final Object defaultValue)
     {
-        final String hyphenizedFieldName = NameUtils.hyphenize(fieldName);
-        final String singularName = NameUtils.singularize(hyphenizedFieldName);
+        final String hyphenizedFieldName = hyphenize(fieldName);
+        final String singularName = singularize(hyphenizedFieldName);
         final ValueHolder<ValueResolver> resolverReference = new ValueHolder<>();
 
         DataQualifierVisitor visitor = new BaseDataQualifierVisitor()
